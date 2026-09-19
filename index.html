@@ -5,15 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistema de Control - Grafiplot</title>
     
+    <!-- Evitar parpadeo de tema (Flash of Unstyled Content) -->
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Habilitar modo oscuro por clase
+            theme: {
+                extend: {
+                    colors: {
+                        // Colores personalizados si se desean agregar a futuro
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- html5-qrcode for barcode scanning -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     
     <!-- jsPDF and JsBarcode for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
     <!-- SheetJS para exportar a Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -21,51 +42,53 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f0fdfa; /* Teal muy claro */
             overflow: hidden; /* Evitar scroll en el body principal */
         }
         
-        /* Custom scrollbar para contenedores internos */
+        /* Custom scrollbar para contenedores internos adaptada a Dark Mode */
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        html.dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
+        html.dark .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
         /* Scanner overrides */
-        #reader { border: none !important; border-radius: 0.5rem; overflow: hidden; }
-        #reader__dashboard_section_csr span { color: #374151 !important; }
+        #reader { border: none !important; border-radius: 0.75rem; overflow: hidden; }
+        #reader__dashboard_section_csr span { color: inherit !important; }
         #reader__dashboard_section_swaplink { text-decoration: none !important; color: #3b82f6 !important; }
         #reader button {
             background-color: #f59e0b !important; /* Naranja */
             color: white !important;
             padding: 0.5rem 1rem !important;
-            border-radius: 0.375rem !important;
+            border-radius: 0.5rem !important;
             border: none !important;
-            font-weight: 500 !important;
+            font-weight: 600 !important;
             cursor: pointer !important;
             margin: 0.25rem !important;
+            transition: background-color 0.2s;
         }
         #reader button:hover { background-color: #d97706 !important; }
-
-        /* Colores personalizados para paneles */
-        .panel-registro { background-color: #eff6ff; border-color: #bfdbfe; } /* Azul claro */
-        .panel-busqueda { background-color: #fdf4ff; border-color: #fbcfe8; } /* Rosa/Fucsia claro */
-        .panel-herramientas { background-color: #fffbeb; border-color: #fde68a; } /* Amarillo claro */
     </style>
 </head>
-<body class="text-gray-800 h-screen w-screen flex flex-col p-2 gap-2 box-border">
+<body class="bg-slate-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100 h-screen w-screen flex flex-col p-2 gap-2 box-border transition-colors duration-300">
 
     <!-- Navegación Superior -->
-    <body class="text-gray-800 h-screen w-screen flex flex-col p-2 gap-2 box-border">
-
-    <!-- Navegación Superior -->
-    <nav class="bg-gradient-to-r from-red-600 to-red-500 text-white p-3 rounded-xl shadow-md flex justify-between items-center shrink-0 h-16">
+    <nav class="bg-gradient-to-r from-red-600 to-red-500 text-white p-3 rounded-2xl shadow-md flex justify-between items-center shrink-0 h-16 transition-all">
         <div class="flex items-center gap-3">
             <span class="text-2xl font-black tracking-widest text-white ml-2 drop-shadow-md">GRAFIPLOT</span>
             <h1 class="text-lg md:text-xl font-medium hidden sm:block border-l-2 border-white/30 pl-3 ml-2">Control</h1>
         </div>
         <div class="flex items-center gap-3">
-            <div id="status-indicator" class="flex items-center gap-2 text-xs md:text-sm bg-white text-red-600 font-bold px-3 py-1.5 rounded-full shadow-inner">
+            
+            <!-- Botón Tema (Modo Oscuro/Claro) -->
+            <button onclick="toggleTheme()" class="p-2 bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 rounded-full transition-colors backdrop-blur-sm" aria-label="Cambiar tema">
+                <svg id="theme-icon-sun" class="w-5 h-5 hidden text-yellow-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path></svg>
+                <svg id="theme-icon-moon" class="w-5 h-5 hidden text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            </button>
+
+            <div id="status-indicator" class="flex items-center gap-2 text-xs md:text-sm bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 font-bold px-3 py-1.5 rounded-full shadow-inner transition-colors">
                 <div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" id="status-dot"></div>
                 <span id="status-text">Conectando...</span>
             </div>
@@ -79,46 +102,44 @@
         <div class="lg:col-span-4 flex flex-col gap-2 h-full min-h-0">
             
             <!-- Panel de Registro -->
-            <div class="panel-registro p-4 rounded-xl shadow-sm border flex-1 flex flex-col min-h-0">
-                <h2 class="text-base font-bold text-blue-800 border-b border-blue-200 pb-2 mb-3 flex items-center gap-2 shrink-0">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            <div class="bg-blue-50 dark:bg-slate-800/80 border-2 border-blue-200 dark:border-slate-700 p-4 rounded-2xl shadow-sm flex-1 flex flex-col min-h-0 transition-colors">
+                <h2 class="text-base font-bold text-blue-800 dark:text-blue-300 border-b border-blue-200 dark:border-slate-600 pb-2 mb-3 flex items-center gap-2 shrink-0">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     Nuevo Registro
                 </h2>
                 
-                <form id="register-form" class="flex flex-col gap-2 flex-1 overflow-y-auto custom-scroll pr-1">
+                <form id="register-form" class="flex flex-col gap-2.5 flex-1 overflow-y-auto custom-scroll pr-2">
                     <div>
-                        <label class="block text-xs font-bold text-blue-900 mb-1">Nombre Completo</label>
-                        <input type="text" id="reg-nombre" required class="w-full p-2 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm" placeholder="Ej. Juan Pérez">
+                        <label class="block text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">Nombre Completo</label>
+                        <input type="text" id="reg-nombre" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-500" placeholder="Ej. Juan Pérez">
                     </div>
                     
                     <div>
-                        <label class="block text-xs font-bold text-blue-900 mb-1">Celular</label>
-                        <input type="tel" id="reg-celular" required class="w-full p-2 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm" placeholder="Ej. 952628844">
+                        <label class="block text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">Celular</label>
+                        <input type="tel" id="reg-celular" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-500" placeholder="Ej. 952628844">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-blue-900 mb-1">Descripción del Trabajo</label>
-                        <textarea id="reg-descripcion" rows="2" class="w-full p-2 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm custom-scroll" placeholder="Ej. Impresión de planos A1..."></textarea>
+                        <label class="block text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">Descripción del Trabajo</label>
+                        <textarea id="reg-descripcion" rows="2" class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm custom-scroll placeholder-gray-400 dark:placeholder-gray-500" placeholder="Ej. Impresión de planos A1..."></textarea>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs font-bold text-blue-900 mb-1">Cant. Hojas</label>
-                            <input type="number" id="reg-hojas" min="1" required class="w-full p-2 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm" placeholder="1">
+                            <label class="block text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">Cant. Hojas</label>
+                            <input type="number" id="reg-hojas" min="1" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-500" placeholder="1">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-blue-900 mb-1">Codificación Libre</label>
-                            <!-- Selector de códigos libres -->
-                            <select id="reg-codigo" required class="w-full p-2 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm font-mono font-bold bg-white cursor-pointer">
+                            <label class="block text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">Cód. Libre</label>
+                            <select id="reg-codigo" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm font-mono font-bold cursor-pointer">
                                 <option value="" disabled selected>Cargando...</option>
                             </select>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-blue-900 mb-1">Ubicación</label>
-                        <!-- Selector de Ubicaciones Fijas -->
-                        <select id="reg-ubicacion" required class="w-full p-2 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm font-bold bg-white cursor-pointer">
+                        <label class="block text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">Ubicación</label>
+                        <select id="reg-ubicacion" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm font-bold cursor-pointer">
                             <option value="E1">Estante 1 (E1)</option>
                             <option value="E2">Estante 2 (E2)</option>
                             <option value="E3">Estante 3 (E3)</option>
@@ -126,23 +147,23 @@
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2 border-t-2 border-blue-100 pt-2 mt-1">
+                    <div class="grid grid-cols-3 gap-2 border-t border-blue-200 dark:border-slate-600 pt-3 mt-1">
                         <div>
-                            <label class="block text-[10px] font-bold text-blue-900 mb-1 leading-tight">Precio Total (S/)</label>
-                            <input type="number" id="reg-precio" step="0.10" required class="w-full p-1.5 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm text-center font-bold" placeholder="0.00">
+                            <label class="block text-[10px] font-bold text-blue-900 dark:text-blue-200 mb-1 leading-tight">Total (S/)</label>
+                            <input type="number" id="reg-precio" step="0.10" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm text-center font-bold" placeholder="0.00">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-blue-900 mb-1 leading-tight">A Cuenta (S/)</label>
-                            <input type="number" id="reg-pago" step="0.10" required class="w-full p-1.5 border-2 border-blue-200 rounded-lg focus:ring-0 focus:border-blue-500 outline-none transition-all text-sm text-center font-bold" placeholder="0.00">
+                            <label class="block text-[10px] font-bold text-blue-900 dark:text-blue-200 mb-1 leading-tight">A Cuenta (S/)</label>
+                            <input type="number" id="reg-pago" step="0.10" required class="w-full p-2 bg-white dark:bg-slate-700 border-2 border-blue-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-blue-500 dark:focus:border-blue-400 outline-none transition-all text-sm text-center font-bold" placeholder="0.00">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-blue-900 mb-1 leading-tight">Cambio/Falta</label>
-                            <input type="text" id="reg-cambio" readonly class="w-full p-1.5 border-2 border-blue-200 rounded-lg bg-blue-50 outline-none transition-all text-sm text-center font-bold text-blue-800" placeholder="0.00">
+                            <label class="block text-[10px] font-bold text-blue-900 dark:text-blue-200 mb-1 leading-tight">Estado</label>
+                            <input type="text" id="reg-cambio" readonly class="w-full p-2 border-2 border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl outline-none transition-all text-sm text-center font-bold text-blue-800 dark:text-blue-300" placeholder="0.00">
                         </div>
                     </div>
 
-                    <div class="mt-auto pt-2 shrink-0">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-md">
+                    <div class="mt-auto pt-3 shrink-0">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-md">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                             Guardar Registro
                         </button>
@@ -151,17 +172,17 @@
             </div>
 
             <!-- Panel de Herramientas -->
-            <div class="panel-herramientas p-3 rounded-xl shadow-sm border shrink-0">
+            <div class="bg-amber-50 dark:bg-slate-800/80 border-2 border-amber-200 dark:border-slate-700 p-3 rounded-2xl shadow-sm shrink-0 transition-colors">
                  <div class="flex flex-col gap-2">
-                    <button onclick="exportToExcel()" class="w-full bg-green-100 hover:bg-green-200 text-green-800 font-bold py-2 rounded-lg transition-colors flex justify-center items-center gap-2 border border-green-300 text-sm shadow-sm">
+                    <button onclick="exportToExcel()" class="w-full bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-800 dark:text-green-400 font-bold py-2 rounded-xl transition-colors flex justify-center items-center gap-2 border border-green-300 dark:border-green-800 text-sm shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Exportar a Excel (Respaldo)
+                        Exportar a Excel
                     </button>
-                    <button onclick="generateBarcodesPDF()" class="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold py-2 rounded-lg transition-colors flex justify-center items-center gap-2 border border-amber-300 text-sm shadow-sm">
+                    <button onclick="generateBarcodesPDF()" class="w-full bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-400 font-bold py-2 rounded-xl transition-colors flex justify-center items-center gap-2 border border-amber-300 dark:border-amber-800 text-sm shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Descargar 100 Códigos (60 p/hoja)
+                        Descargar 100 Códigos QR
                     </button>
-                    <button onclick="showClearModal()" class="w-full bg-red-100 hover:bg-red-200 text-red-700 font-bold py-1.5 rounded-lg transition-colors flex justify-center items-center gap-2 border border-red-300 text-xs shadow-sm">
+                    <button onclick="showClearModal()" class="w-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-bold py-1.5 rounded-xl transition-colors flex justify-center items-center gap-2 border border-red-300 dark:border-red-800 text-xs shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         Limpiar Datos
                     </button>
@@ -170,42 +191,42 @@
         </div>
 
         <!-- COLUMNA DERECHA: Búsqueda y Resultados -->
-        <div class="lg:col-span-8 panel-busqueda rounded-xl shadow-sm border p-4 flex flex-col h-full min-h-0">
+        <div class="lg:col-span-8 bg-fuchsia-50 dark:bg-slate-800/80 rounded-2xl shadow-sm border-2 border-fuchsia-200 dark:border-slate-700 p-4 flex flex-col h-full min-h-0 transition-colors">
             
-            <h2 class="text-base font-bold text-fuchsia-800 border-b border-fuchsia-200 pb-2 mb-3 flex items-center gap-2 shrink-0">
-                <svg class="w-5 h-5 text-fuchsia-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <h2 class="text-base font-bold text-fuchsia-800 dark:text-fuchsia-400 border-b border-fuchsia-200 dark:border-slate-600 pb-2 mb-3 flex items-center gap-2 shrink-0">
+                <svg class="w-5 h-5 text-fuchsia-600 dark:text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 Buscador y Escáner
             </h2>
             
             <!-- Barra de búsqueda y botón de cámara -->
             <div class="flex flex-col sm:flex-row gap-2 mb-3 shrink-0">
                 <div class="flex-1 relative">
-                    <input type="text" id="search-input" placeholder="Buscar por código, celular o nombre..." class="w-full pl-9 p-2.5 border-2 border-fuchsia-200 rounded-lg focus:ring-0 focus:border-fuchsia-500 outline-none transition-all text-sm font-semibold bg-white shadow-sm">
-                    <svg class="w-5 h-5 text-fuchsia-400 absolute left-2.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="search-input" placeholder="Buscar por código, celular o nombre..." class="w-full pl-10 p-2.5 bg-white dark:bg-slate-700 border-2 border-fuchsia-200 dark:border-slate-600 dark:text-white rounded-xl focus:ring-0 focus:border-fuchsia-500 dark:focus:border-fuchsia-400 outline-none transition-all text-sm font-semibold shadow-sm placeholder-gray-400">
+                    <svg class="w-5 h-5 text-fuchsia-400 dark:text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <button onclick="toggleScanner()" id="btn-scanner" class="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 whitespace-nowrap shadow-md">
+                <button onclick="toggleScanner()" id="btn-scanner" class="bg-fuchsia-600 hover:bg-fuchsia-700 dark:bg-fuchsia-500 dark:hover:bg-fuchsia-600 text-white font-bold py-2.5 px-5 rounded-xl transition-colors flex justify-center items-center gap-2 whitespace-nowrap shadow-md">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
                     <span id="scanner-btn-text">Escanear</span>
                 </button>
             </div>
 
             <!-- Contenedor del Escáner (Oculto) -->
-            <div id="scanner-container" class="hidden w-full mb-3 bg-white border-2 border-dashed border-fuchsia-300 rounded-lg p-2 shrink-0 shadow-inner">
-                <div id="reader" class="w-full max-h-[200px]"></div>
-                <button onclick="toggleScanner()" class="mt-2 w-full bg-red-100 text-red-700 font-bold hover:bg-red-200 py-1.5 rounded flex justify-center items-center gap-2 text-sm">
+            <div id="scanner-container" class="hidden w-full mb-3 bg-white dark:bg-slate-800 border-2 border-dashed border-fuchsia-300 dark:border-slate-600 rounded-xl p-3 shrink-0 shadow-inner transition-colors">
+                <div id="reader" class="w-full max-h-[220px]"></div>
+                <button onclick="toggleScanner()" class="mt-3 w-full bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-bold py-2 rounded-lg flex justify-center items-center gap-2 text-sm transition-colors border border-red-200 dark:border-red-800">
                     Cerrar Cámara
                 </button>
             </div>
 
             <!-- Lista de Resultados (Con Scroll Independiente) -->
-            <div class="flex justify-between items-center mb-1 shrink-0">
-                <h3 class="text-xs font-bold text-fuchsia-700 uppercase tracking-wider">Registros (<span id="results-count">0</span>)</h3>
+            <div class="flex justify-between items-center mb-2 shrink-0 px-1">
+                <h3 class="text-xs font-bold text-fuchsia-700 dark:text-fuchsia-400 uppercase tracking-wider">Registros (<span id="results-count">0</span>)</h3>
             </div>
             
-            <div id="results-container" class="flex-1 overflow-y-auto custom-scroll space-y-2 pr-1 pb-2">
+            <div id="results-container" class="flex-1 overflow-y-auto custom-scroll space-y-2.5 pr-2 pb-2">
                 <!-- Los resultados se inyectan aquí -->
                 <div class="flex items-center justify-center h-full">
-                    <div class="text-center text-fuchsia-400 p-6 text-sm font-medium border-2 border-dashed border-fuchsia-200 rounded-xl bg-white/50">
+                    <div class="text-center text-fuchsia-400 dark:text-slate-500 p-6 text-sm font-medium border-2 border-dashed border-fuchsia-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-800/50">
                         Los registros aparecerán aquí.
                     </div>
                 </div>
@@ -214,16 +235,106 @@
         </div>
     </main>
 
-    <!-- Modal Confirmar Limpieza -->
-    <div id="clear-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform" id="clear-modal-content">
-            <div class="flex items-center justify-center w-14 h-14 mx-auto bg-red-100 rounded-full mb-4">
-                <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    <!-- Modales -->
+    
+    <!-- Modal Boleta Flotante -->
+    <div id="receipt-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-sm w-full p-0 overflow-hidden flex flex-col max-h-[90vh] transform scale-95 opacity-0 transition-all duration-300" id="receipt-modal-content">
+            
+            <div class="bg-red-600 p-5 text-center shrink-0 shadow-sm relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==')]"></div>
+                <h2 class="text-3xl font-black tracking-widest text-white drop-shadow-md relative z-10">GRAFIPLOT</h2>
+                <p class="text-red-100 text-[10px] font-bold tracking-widest mt-1 uppercase relative z-10">Ticket de Registro</p>
             </div>
-            <h3 class="text-xl font-black text-center text-gray-900 mb-2">¡Atención!</h3>
-            <p class="text-sm text-center text-gray-600 mb-6 font-medium">Vas a borrar TODOS los registros del sistema. Esta acción no se puede deshacer.</p>
+            
+            <div class="p-6 overflow-y-auto custom-scroll text-sm flex-1 bg-slate-50 dark:bg-slate-800">
+                <div class="flex justify-between items-center mb-5 border-b border-gray-200 dark:border-slate-700 pb-4">
+                    <div>
+                        <p class="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Código</p>
+                        <p class="text-2xl font-black text-slate-800 dark:text-white font-mono bg-white dark:bg-slate-700 px-3 py-1 rounded-lg border border-gray-100 dark:border-slate-600 shadow-sm inline-block" id="rm-codigo">---</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Fecha</p>
+                        <p class="text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 px-2 py-1 rounded border border-gray-100 dark:border-slate-600" id="rm-fecha">--/--/----</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <p class="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Cliente</p>
+                        <p class="font-bold text-slate-900 dark:text-white text-base" id="rm-nombre">---</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Celular</p>
+                            <p class="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                <span id="rm-celular">---</span>
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Ubicación</p>
+                            <p class="font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded inline-block border border-blue-100 dark:border-blue-800" id="rm-ubicacion">---</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Descripción</p>
+                        <p class="font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-gray-100 dark:border-slate-600 leading-relaxed italic" id="rm-descripcion">---</p>
+                    </div>
+                </div>
+
+                <!-- Finanzas -->
+                <div class="bg-white dark:bg-slate-900/80 p-4 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-gray-200 dark:bg-slate-700" id="rm-estado-border"></div>
+                    <div class="flex justify-between mb-2 pl-3">
+                        <span class="font-bold text-gray-500 dark:text-slate-400">Total:</span>
+                        <span class="font-bold text-slate-900 dark:text-white" id="rm-total">S/ 0.00</span>
+                    </div>
+                    <div class="flex justify-between mb-3 pl-3">
+                        <span class="font-bold text-gray-500 dark:text-slate-400">A Cuenta:</span>
+                        <span class="font-bold text-slate-900 dark:text-white" id="rm-acuenta">S/ 0.00</span>
+                    </div>
+                    <div class="border-t border-dashed border-gray-300 dark:border-slate-600 my-2 pt-3 flex justify-between items-center pl-3">
+                        <span class="font-black text-slate-800 dark:text-slate-200 tracking-wide" id="rm-estado-label">ESTADO:</span>
+                        <span class="font-black text-xl" id="rm-estado-valor">S/ 0.00</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 mb-2 flex justify-center relative">
+                    <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div class="w-full border-t border-dashed border-gray-300 dark:border-slate-600"></div>
+                    </div>
+                    <div class="relative flex justify-center bg-slate-50 dark:bg-slate-800 px-4">
+                        <div class="bg-white p-2.5 rounded-2xl border border-gray-200 shadow-md transform rotate-1 hover:rotate-0 transition-transform">
+                            <img id="rm-qr-img" class="w-28 h-28 mix-blend-multiply" alt="QR Code">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botones -->
+            <div class="p-4 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex gap-3 shrink-0">
+                <button onclick="hideReceiptModal()" class="flex-1 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 font-bold py-3 rounded-xl transition-colors">
+                    Cerrar
+                </button>
+                <button onclick="downloadCurrentReceiptPDF()" class="flex-[1.5] bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Descargar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Otros modales adaptados a dark mode -->
+    <div id="clear-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform" id="clear-modal-content">
+            <div class="flex items-center justify-center w-14 h-14 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-xl font-black text-center text-gray-900 dark:text-white mb-2">¡Atención!</h3>
+            <p class="text-sm text-center text-gray-600 dark:text-gray-300 mb-6 font-medium">Vas a borrar TODOS los registros del sistema. Esta acción no se puede deshacer.</p>
             <div class="flex gap-3">
-                <button onclick="hideClearModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2.5 rounded-xl transition-colors">Cancelar</button>
+                <button onclick="hideClearModal()" class="flex-1 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-colors">Cancelar</button>
                 <button onclick="executeClearData()" id="btn-confirm-clear" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg">
                     Borrar Todo
                 </button>
@@ -231,16 +342,102 @@
         </div>
     </div>
 
-    <!-- Contenedor Toast -->
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+    <!-- Modal Eliminar Un Solo Registro -->
+    <div id="delete-single-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform">
+            <div class="flex items-center justify-center w-14 h-14 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </div>
+            <h3 class="text-xl font-black text-center text-gray-900 dark:text-white mb-2">Eliminar Registro</h3>
+            <p class="text-sm text-center text-gray-600 dark:text-gray-300 mb-6 font-medium">¿Estás seguro que deseas eliminar este registro de la base de datos?</p>
+            <input type="hidden" id="delete-id-input">
+            <div class="flex gap-3">
+                <button onclick="hideDeleteSingleModal()" class="flex-1 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-colors">Cancelar</button>
+                <button onclick="executeSingleDelete()" id="btn-confirm-single-delete" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg">
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Canvas ocultos para PDFs -->
-    <canvas id="barcode-canvas" class="hidden"></canvas>
+    <!-- Modal Detalles de Deuda (Al Escanear QR) -->
+    <div id="debt-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform">
+            <div id="debt-modal-icon" class="flex items-center justify-center w-16 h-16 mx-auto rounded-full mb-4 transition-colors duration-300">
+                <!-- Icono dinámico -->
+            </div>
+            <h3 class="text-2xl font-black text-center text-gray-900 dark:text-white mb-1" id="debt-modal-title">Estado de Cuenta</h3>
+            <p class="text-sm text-center text-gray-500 dark:text-gray-400 mb-5 font-medium" id="debt-modal-subtitle">Cliente: ---</p>
+            
+            <div class="bg-gray-50 dark:bg-slate-900/80 rounded-xl p-4 mb-6 border border-gray-200 dark:border-slate-700">
+                <div class="flex justify-between mb-2 text-sm">
+                    <span class="font-bold text-gray-600 dark:text-gray-400">Total a Pagar:</span>
+                    <span class="font-bold text-gray-900 dark:text-white" id="debt-modal-total">S/ 0.00</span>
+                </div>
+                <div class="flex justify-between mb-2 text-sm">
+                    <span class="font-bold text-gray-600 dark:text-gray-400">A Cuenta (Adelanto):</span>
+                    <span class="font-bold text-gray-900 dark:text-white" id="debt-modal-acuenta">S/ 0.00</span>
+                </div>
+                <div class="border-t border-dashed border-gray-300 dark:border-slate-600 my-3 pt-3 flex justify-between text-base items-center">
+                    <span class="font-black text-gray-800 dark:text-gray-200" id="debt-modal-status-label">ESTADO:</span>
+                    <span class="font-black text-2xl" id="debt-modal-status-value">S/ 0.00</span>
+                </div>
+            </div>
+
+            <button onclick="hideDebtModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg text-lg">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Ayuda Cámara -->
+    <div id="camera-error-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform">
+            <div class="flex items-center justify-center w-14 h-14 mx-auto bg-amber-100 dark:bg-amber-900/30 rounded-full mb-4">
+                <svg class="w-7 h-7 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-xl font-black text-center text-gray-900 dark:text-white mb-2">Cámara Bloqueada</h3>
+            <p class="text-sm text-center text-gray-600 dark:text-gray-300 mb-4 font-medium">
+                Para usar la cámara en tu celular, debes abrir la página web desde tu enlace de <b>GitHub Pages (HTTPS)</b>.<br><br>
+                Si abres el archivo descargado directamente desde el almacenamiento local, el navegador bloqueará la cámara.
+            </p>
+            <button onclick="hideCameraErrorModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition-colors shadow-lg">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Contenedor Toast -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ----------------------------------------------------------------------------------
+        // Configuración de Tema (Dark/Light Mode)
+        // ----------------------------------------------------------------------------------
+        window.toggleTheme = function() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+                document.getElementById('theme-icon-sun').classList.add('hidden');
+                document.getElementById('theme-icon-moon').classList.remove('hidden');
+            } else {
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+                document.getElementById('theme-icon-moon').classList.add('hidden');
+                document.getElementById('theme-icon-sun').classList.remove('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.getElementById('theme-icon-sun').classList.remove('hidden');
+            } else {
+                document.getElementById('theme-icon-moon').classList.remove('hidden');
+            }
+        });
 
         // ----------------------------------------------------------------------------------
         // 🔧 TUS CREDENCIALES DE FIREBASE CONFIGURADAS
@@ -255,9 +452,7 @@
             measurementId: "G-960180WKR3"
         };
 
-        // Environment variables (Permite usar entorno de pruebas o tu configuración personalizada)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'app-registro-grafiplot';
-        
         const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config !== null 
             ? JSON.parse(__firebase_config) 
             : tuConfiguracionFirebase;
@@ -266,8 +461,9 @@
         let records = []; 
         let html5QrcodeScanner = null;
         let isScannerRunning = false;
+        let editingRecordId = null;
+        window.currentReceiptId = null; // Para la boleta flotante
         
-        // Total de códigos posibles (001 al 100)
         const TOTAL_CODES = 100;
 
         // Calcular cambio automáticamente
@@ -277,27 +473,22 @@
             const cambio = pago - precio;
             const inputCambio = document.getElementById('reg-cambio');
             
+            // Remover estilos previos
+            inputCambio.classList.remove('text-red-600', 'bg-red-50/50', 'border-red-300', 'dark:text-red-400', 'dark:bg-red-900/20', 'dark:border-red-800/50');
+            inputCambio.classList.remove('text-blue-800', 'bg-blue-50/50', 'border-blue-200', 'dark:text-blue-300', 'dark:bg-blue-900/20', 'dark:border-blue-800/50');
+            
             if (cambio < 0) {
                 inputCambio.value = "Falta " + Math.abs(cambio).toFixed(2);
-                inputCambio.classList.add('text-red-600', 'bg-red-50', 'border-red-300');
-                inputCambio.classList.remove('text-blue-800', 'bg-blue-50', 'border-blue-200');
+                inputCambio.classList.add('text-red-600', 'bg-red-50/50', 'border-red-300', 'dark:text-red-400', 'dark:bg-red-900/20', 'dark:border-red-800/50');
             } else {
                 inputCambio.value = cambio.toFixed(2);
-                inputCambio.classList.remove('text-red-600', 'bg-red-50', 'border-red-300');
-                inputCambio.classList.add('text-blue-800', 'bg-blue-50', 'border-blue-200');
+                inputCambio.classList.add('text-blue-800', 'bg-blue-50/50', 'border-blue-200', 'dark:text-blue-300', 'dark:bg-blue-900/20', 'dark:border-blue-800/50');
             }
         }
 
         async function initApp() {
-            // Inicializar opciones de códigos inmediatamente (Arregla bug "Cargando...")
             updateAvailableCodesSelect();
-
-            if (!firebaseConfig) {
-                showToast("Error de Configuración BD", "error");
-                updateStatus("Error BD", "bg-red-500");
-                return;
-            }
-
+            if (!firebaseConfig) { showToast("Error de Configuración", "error"); return; }
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -311,89 +502,65 @@
                 
                 onSnapshot(collPath, (snapshot) => {
                     records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    records.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
                     
-                    records.sort((a, b) => {
-                        let timeA = a.createdAt?.toMillis() || 0;
-                        let timeB = b.createdAt?.toMillis() || 0;
-                        return timeB - timeA;
-                    });
-
-                    // Guardar respaldo local en la PC (espejo de seguridad)
-                    try {
-                        localStorage.setItem('grafiplot_backup_records', JSON.stringify(records));
-                    } catch(e) { console.warn("No se pudo guardar backup local", e); }
-
-                    updateStatus("Conectado", "bg-green-500", "text-green-700");
+                    try { localStorage.setItem('grafiplot_backup', JSON.stringify(records)); } catch(e) {}
                     
-                    // Actualizar UI dependiente de datos
+                    updateStatus("Conectado", "bg-green-500", "text-green-700 dark:text-green-400");
                     updateAvailableCodesSelect();
                     handleSearch();
                 }, (error) => {
                     console.error(error);
-                    updateStatus("Desconectado", "bg-red-500", "text-red-700");
+                    updateStatus("Desconectado", "bg-red-500", "text-red-700 dark:text-red-400");
                 });
 
-            } catch (error) {
-                console.error(error);
-                updateStatus("Error", "bg-red-500", "text-red-700");
-            }
+            } catch (error) { console.error(error); updateStatus("Error", "bg-red-500"); }
         }
 
         function updateAvailableCodesSelect() {
             const selectEl = document.getElementById('reg-codigo');
-            const currentSelected = selectEl.value; // Guardar selección actual si la hay
-            
-            // Obtener códigos ya usados
+            const currentSelected = selectEl.value; 
             const usedCodes = records.map(r => r.codigo);
-            
-            selectEl.innerHTML = ''; // Limpiar
-            
-            let firstAvailable = null;
-            let availableCount = 0;
+            let editingCode = editingRecordId ? records.find(r => r.id === editingRecordId)?.codigo : null;
+
+            selectEl.innerHTML = ''; 
+            let firstAvailable = null, availableCount = 0;
 
             for (let i = 1; i <= TOTAL_CODES; i++) {
                 const codeStr = String(i).padStart(3, '0');
-                if (!usedCodes.includes(codeStr)) {
+                if (!usedCodes.includes(codeStr) || codeStr === editingCode) {
                     availableCount++;
                     const option = document.createElement('option');
-                    option.value = codeStr;
-                    option.textContent = `Código: ${codeStr}`;
+                    option.value = codeStr; option.textContent = `Código: ${codeStr}`;
                     selectEl.appendChild(option);
-                    
                     if (!firstAvailable) firstAvailable = codeStr;
                 }
             }
 
             if (availableCount === 0) {
                 const opt = document.createElement('option');
-                opt.value = "";
-                opt.textContent = "No hay códigos libres (1-100)";
-                opt.disabled = true;
+                opt.value = ""; opt.textContent = "Sin códigos"; opt.disabled = true;
                 selectEl.appendChild(opt);
-                selectEl.classList.add('bg-red-50', 'text-red-600');
+                selectEl.classList.add('text-red-600', 'dark:text-red-400');
             } else {
-                selectEl.classList.remove('bg-red-50', 'text-red-600');
-                // Intentar mantener el seleccionado, sino el primero libre
-                if (currentSelected && !usedCodes.includes(currentSelected)) {
-                    selectEl.value = currentSelected;
-                } else if (firstAvailable) {
-                    selectEl.value = firstAvailable;
-                }
+                selectEl.classList.remove('text-red-600', 'dark:text-red-400');
+                if (currentSelected && !usedCodes.includes(currentSelected)) selectEl.value = currentSelected;
+                else if (firstAvailable) selectEl.value = firstAvailable;
             }
         }
 
-        function updateStatus(text, bgClass, textClass = "text-gray-800") {
+        function updateStatus(text, bgClass, textClass = "text-gray-800 dark:text-gray-200") {
             const el = document.getElementById('status-indicator');
             document.getElementById('status-text').textContent = text;
             document.getElementById('status-dot').className = `w-2 h-2 rounded-full ${bgClass} animate-pulse`;
-            el.className = `flex items-center gap-2 text-xs md:text-sm font-bold px-3 py-1.5 rounded-full shadow-inner ${textClass} bg-white`;
+            el.className = `flex items-center gap-2 text-xs md:text-sm bg-white dark:bg-slate-800 font-bold px-3 py-1.5 rounded-full shadow-inner transition-colors ${textClass}`;
         }
 
         window.showToast = function(message, type = "success") {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
-            toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-xl transform transition-all duration-300 -translate-y-10 opacity-0 flex items-center gap-3 font-bold text-sm`;
+            const bgColor = type === "success" ? "bg-green-600" : "bg-red-600";
+            toast.className = `${bgColor} text-white px-4 py-3 rounded-2xl shadow-xl transform transition-all duration-300 -translate-y-10 opacity-0 flex items-center gap-3 font-bold text-sm pointer-events-auto`;
             toast.innerHTML = `<span class="text-lg">${type === 'success' ? '✓' : '⚠'}</span> ${message}`;
             container.appendChild(toast);
             requestAnimationFrame(() => toast.classList.remove('-translate-y-10', 'opacity-0'));
@@ -403,55 +570,126 @@
             }, 3000);
         }
 
+        // ----------------------------------------------------------------------------------
+        // Nueva Lógica de Boleta Flotante
+        // ----------------------------------------------------------------------------------
+        window.showReceiptModal = function(id) {
+            currentReceiptId = id;
+            const record = records.find(r => r.id === id);
+            if (!record) return;
+
+            // Llenar campos
+            document.getElementById('rm-codigo').textContent = record.codigo;
+            document.getElementById('rm-nombre').textContent = record.nombre || '---';
+            document.getElementById('rm-celular').textContent = record.celular || '---';
+            document.getElementById('rm-ubicacion').textContent = record.ubicacion || '---';
+            document.getElementById('rm-descripcion').textContent = record.descripcion || 'Sin descripción...';
+            
+            // Fecha
+            let dateStr = "---";
+            if(record.createdAt) {
+                const d = record.createdAt.toDate ? record.createdAt.toDate() : new Date(record.createdAt);
+                dateStr = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            }
+            document.getElementById('rm-fecha').textContent = dateStr;
+
+            // Finanzas
+            const total = Number(record.precio || 0);
+            const acuenta = Number(record.pago || 0);
+            const saldo = acuenta - total;
+
+            document.getElementById('rm-total').textContent = `S/ ${total.toFixed(2)}`;
+            document.getElementById('rm-acuenta').textContent = `S/ ${acuenta.toFixed(2)}`;
+
+            const eLabel = document.getElementById('rm-estado-label');
+            const eValor = document.getElementById('rm-estado-valor');
+            const eBorder = document.getElementById('rm-estado-border');
+
+            if (saldo < 0) {
+                eLabel.textContent = "FALTA PAGAR:";
+                eValor.textContent = `S/ ${Math.abs(saldo).toFixed(2)}`;
+                eValor.className = "font-black text-xl text-red-600 dark:text-red-400";
+                eBorder.className = "absolute left-0 top-0 bottom-0 w-1.5 bg-red-500";
+            } else {
+                eLabel.textContent = saldo === 0 ? "PAGADO / LISTO:" : "DAR VUELTO:";
+                eValor.textContent = saldo === 0 ? "✓ S/ 0.00" : `S/ ${Math.abs(saldo).toFixed(2)}`;
+                eValor.className = "font-black text-xl text-green-600 dark:text-green-400";
+                eBorder.className = "absolute left-0 top-0 bottom-0 w-1.5 bg-green-500";
+            }
+
+            // QR Dinámico
+            const qr = new QRious({
+                value: record.codigo,
+                size: 250,
+                level: 'M'
+            });
+            document.getElementById('rm-qr-img').src = qr.toDataURL('image/jpeg');
+
+            // Mostrar modal con animación
+            const modal = document.getElementById('receipt-modal');
+            const content = document.getElementById('receipt-modal-content');
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            });
+        }
+
+        window.hideReceiptModal = function() {
+            const modal = document.getElementById('receipt-modal');
+            const content = document.getElementById('receipt-modal-content');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        window.downloadCurrentReceiptPDF = function() {
+            if (currentReceiptId) generateReceiptPDF(currentReceiptId);
+        }
+
+        // ----------------------------------------------------------------------------------
+
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if(!auth.currentUser) return;
 
             const codeSelect = document.getElementById('reg-codigo');
-            if (!codeSelect.value) {
-                showToast("No hay códigos libres seleccionados", "error");
-                return;
-            }
+            if (!codeSelect.value) { showToast("No hay códigos libres", "error"); return; }
 
             const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = 'Guardando...';
+            submitBtn.disabled = true; submitBtn.innerHTML = 'Guardando...';
 
             const data = {
                 nombre: document.getElementById('reg-nombre').value.trim(),
                 celular: document.getElementById('reg-celular').value.trim(),
                 descripcion: document.getElementById('reg-descripcion').value.trim(),
                 hojas: parseInt(document.getElementById('reg-hojas').value),
-                codigo: codeSelect.value, // Tomado del select desplegable
-                ubicacion: document.getElementById('reg-ubicacion').value, // E1, E2..
+                codigo: codeSelect.value,
+                ubicacion: document.getElementById('reg-ubicacion').value,
                 precio: parseFloat(document.getElementById('reg-precio').value) || 0,
-                pago: parseFloat(document.getElementById('reg-pago').value) || 0,
-                createdAt: serverTimestamp()
+                pago: parseFloat(document.getElementById('reg-pago').value) || 0
             };
 
             try {
-                const collPath = collection(db, 'artifacts', appId, 'public', 'data', 'registros');
-                await addDoc(collPath, data);
-                showToast(`Registrado con código ${data.codigo}`);
+                if (editingRecordId) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'registros', editingRecordId), data);
+                    showToast(`Registro actualizado (${data.codigo})`);
+                    editingRecordId = null;
+                    submitBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Guardar Registro`;
+                    submitBtn.classList.replace('bg-orange-600', 'bg-blue-600');
+                    submitBtn.classList.replace('hover:bg-orange-700', 'hover:bg-blue-700');
+                } else {
+                    data.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'registros'), data);
+                    showToast(`Registrado con código ${data.codigo}`);
+                }
                 
-                // Limpiar campos de texto, dejar ubicacion igual por conveniencia
-                document.getElementById('reg-nombre').value = '';
-                document.getElementById('reg-celular').value = '';
-                document.getElementById('reg-descripcion').value = '';
+                e.target.reset();
                 document.getElementById('reg-hojas').value = '1';
-                document.getElementById('reg-precio').value = '';
-                document.getElementById('reg-pago').value = '';
-                document.getElementById('reg-cambio').value = '';
-                calcularCambio(); // Limpiar estilos de estado
-                
-                // El código se actualizará solo gracias al onSnapshot y updateAvailableCodesSelect
-                
-            } catch (error) {
-                showToast("Error al guardar", "error");
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg> Guardar Registro`;
-            }
+                document.getElementById('reg-ubicacion').value = 'E1';
+                calcularCambio();
+            } catch (error) { showToast("Error al guardar", "error"); } 
+            finally { submitBtn.disabled = false; }
         });
 
         const searchInput = document.getElementById('search-input');
@@ -474,41 +712,47 @@
             countEl.textContent = filtered.length;
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center text-fuchsia-400 p-6 text-sm font-medium border-2 border-dashed border-fuchsia-200 rounded-xl bg-white/50">No hay registros que coincidan.</div>`;
+                container.innerHTML = `<div class="text-center text-fuchsia-400 dark:text-slate-500 p-6 text-sm font-medium border-2 border-dashed border-fuchsia-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-800/50">No hay registros que coincidan.</div>`;
                 return;
             }
 
             container.innerHTML = filtered.map(r => `
-                <div class="bg-white border-2 border-fuchsia-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                    <div class="absolute top-0 left-0 w-1.5 h-full bg-fuchsia-500"></div>
+                <div class="bg-white dark:bg-slate-800 border-2 border-fuchsia-100 dark:border-slate-700 rounded-2xl p-3.5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-fuchsia-500 dark:bg-fuchsia-600"></div>
                     
-                    <div class="flex justify-between items-start mb-2 pl-2">
-                        <div class="font-bold text-gray-800 flex-1">
-                            <span class="bg-fuchsia-100 text-fuchsia-800 text-xs px-2 py-1 rounded-md font-mono border border-fuchsia-200 mr-2 shadow-sm">COD: ${r.codigo}</span>
-                            <span class="text-sm uppercase">${r.nombre}</span>
+                    <div class="flex justify-between items-start mb-2.5 pl-2">
+                        <div class="font-bold text-gray-800 dark:text-white flex-1 flex flex-wrap items-center gap-2">
+                            <span class="bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-800 dark:text-fuchsia-300 text-[11px] px-2 py-1 rounded-md font-mono border border-fuchsia-200 dark:border-fuchsia-800/50 shadow-sm leading-none">COD: ${r.codigo}</span>
+                            <span class="text-sm uppercase tracking-tight">${r.nombre}</span>
                         </div>
-                        <div class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-black text-xs border border-blue-200 shrink-0">
+                        <div class="bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-2.5 py-1 rounded-lg font-black text-xs border border-blue-200 dark:border-blue-800/50 shrink-0">
                             ${r.ubicacion}
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-1 text-xs text-gray-600 pl-2 mb-2 font-medium">
-                        <div class="flex items-center gap-1">📱 ${r.celular}</div>
-                        <div class="flex items-center gap-1">📄 ${r.hojas} Hojas</div>
-                        <div class="col-span-2 text-gray-500 italic mt-0.5 truncate border-l-2 border-gray-300 pl-2" title="${r.descripcion || 'Sin descripción'}">${r.descripcion || 'Sin descripción'}</div>
-                        <div class="col-span-2 flex justify-between mt-1 pt-1 border-t border-dashed border-gray-200">
-                            <span class="font-bold text-blue-700">Total: S/ ${Number(r.precio || 0).toFixed(2)}</span>
-                            <span class="font-bold ${(r.pago - r.precio) < 0 ? 'text-red-600' : 'text-green-600'}">
+                    <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 pl-2 mb-3 font-medium">
+                        <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg> ${r.celular}</div>
+                        <div class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> ${r.hojas} Hojas</div>
+                        <div class="col-span-2 text-gray-500 dark:text-gray-500 italic mt-0.5 truncate border-l-2 border-gray-300 dark:border-slate-600 pl-2 text-[11px] bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-md" title="${r.descripcion || 'Sin descripción'}">${r.descripcion || 'Sin descripción...'}</div>
+                        
+                        <div class="col-span-2 flex justify-between mt-1 pt-2 border-t border-dashed border-gray-200 dark:border-slate-700">
+                            <span class="font-bold text-blue-700 dark:text-blue-400">Total: S/ ${Number(r.precio || 0).toFixed(2)}</span>
+                            <span class="font-bold ${(r.pago - r.precio) < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}">
                                 ${(r.pago - r.precio) < 0 ? 'Falta: S/ ' + Math.abs(r.pago - r.precio).toFixed(2) : 'A Cuenta: S/ ' + Number(r.pago || 0).toFixed(2)}
                             </span>
                         </div>
                     </div>
 
-                    <!-- Botón Generar Recibo -->
-                    <div class="pl-2 border-t border-gray-100 pt-2 mt-1">
-                        <button onclick="generateReceiptPDF('${r.id}')" class="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold py-1.5 rounded-lg border border-gray-200 text-xs flex justify-center items-center gap-2 transition-colors">
-                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                            Generar Recibo
+                    <!-- Botones de Acción -->
+                    <div class="pt-1 mt-1 flex gap-2">
+                        <button onclick="showReceiptModal('${r.id}')" class="flex-[1.5] bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-xs flex justify-center items-center gap-1.5 transition-colors shadow-sm">
+                            📄 Boleta
+                        </button>
+                        <button onclick="editRecord('${r.id}')" class="flex-1 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-400 font-bold py-2 rounded-xl border border-orange-200 dark:border-orange-800/50 text-xs flex justify-center items-center gap-1 transition-colors">
+                            ✏️ Editar
+                        </button>
+                        <button onclick="confirmDeleteSingle('${r.id}')" class="flex-1 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-400 font-bold py-2 rounded-xl border border-red-200 dark:border-red-800/50 text-xs flex justify-center items-center gap-1 transition-colors">
+                            🗑️
                         </button>
                     </div>
                 </div>
@@ -516,357 +760,245 @@
         }
 
         window.toggleScanner = function() {
+            if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                document.getElementById('camera-error-modal').classList.remove('hidden'); return;
+            }
+
             const container = document.getElementById('scanner-container');
             const btnText = document.getElementById('scanner-btn-text');
             
             if (isScannerRunning) {
                 if (html5QrcodeScanner) {
                     html5QrcodeScanner.clear().then(() => {
-                        isScannerRunning = false;
-                        container.classList.add('hidden');
-                        btnText.textContent = "Escanear";
+                        isScannerRunning = false; container.classList.add('hidden'); btnText.textContent = "Escanear";
                     }).catch(err => console.error(err));
                 }
             } else {
-                container.classList.remove('hidden');
-                btnText.textContent = "Iniciando...";
-                
+                container.classList.remove('hidden'); btnText.textContent = "Iniciando...";
                 if (!html5QrcodeScanner) html5QrcodeScanner = new Html5Qrcode("reader");
-                const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+                const config = { fps: 10, qrbox: { width: 220, height: 220 } };
                 
                 html5QrcodeScanner.start(
                     { facingMode: "environment" }, config,
                     (decodedText) => {
-                        // Bip
                         try {
                             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            const osc = ctx.createOscillator();
-                            osc.type = "sine"; osc.frequency.setValueAtTime(800, ctx.currentTime);
+                            const osc = ctx.createOscillator(); osc.type = "sine"; osc.frequency.setValueAtTime(800, ctx.currentTime);
                             osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.1);
                         } catch(e) {}
 
-                        searchInput.value = decodedText;
-                        handleSearch();
-                        showToast(`Código ${decodedText} detectado`);
-                        toggleScanner(); // Apagar cámara
+                        const foundRecord = records.find(r => r.codigo === decodedText);
+                        if (foundRecord) {
+                            showToast(`Código ${decodedText} detectado`, "success");
+                            showDebtModal(foundRecord);
+                        } else {
+                            showToast(`Código ${decodedText} detectado pero NO registrado`, "error");
+                        }
+
+                        searchInput.value = decodedText; handleSearch(); toggleScanner(); 
                     },
-                    () => {} // ignorar errores frame
+                    () => {} 
                 ).then(() => {
-                    isScannerRunning = true;
-                    btnText.textContent = "Cámara Activa";
+                    isScannerRunning = true; btnText.textContent = "Cámara Activa";
                 }).catch((err) => {
-                    showToast("No se pudo iniciar cámara.", "error");
-                    container.classList.add('hidden');
+                    showToast("No se pudo iniciar cámara.", "error"); container.classList.add('hidden');
                 });
             }
         }
 
+        window.editRecord = function(id) {
+            const record = records.find(r => r.id === id);
+            if (!record) return;
+
+            editingRecordId = id;
+            document.getElementById('reg-nombre').value = record.nombre || '';
+            document.getElementById('reg-celular').value = record.celular || '';
+            document.getElementById('reg-descripcion').value = record.descripcion || '';
+            document.getElementById('reg-hojas').value = record.hojas || 1;
+            document.getElementById('reg-ubicacion').value = record.ubicacion || 'E1';
+            document.getElementById('reg-precio').value = record.precio || '';
+            document.getElementById('reg-pago').value = record.pago || '';
+            calcularCambio();
+
+            updateAvailableCodesSelect();
+            document.getElementById('reg-codigo').value = record.codigo;
+
+            const submitBtn = document.querySelector('#register-form button[type="submit"]');
+            submitBtn.innerHTML = `✏️ Actualizar Registro`;
+            submitBtn.classList.replace('bg-blue-600', 'bg-orange-600');
+            submitBtn.classList.replace('hover:bg-blue-700', 'hover:bg-orange-700');
+            submitBtn.classList.replace('dark:bg-blue-500', 'dark:bg-orange-500');
+            submitBtn.classList.replace('dark:hover:bg-blue-600', 'dark:hover:bg-orange-600');
+
+            document.querySelector('.panel-registro')?.scrollTo({top: 0, behavior: 'smooth'});
+            showToast("Modo edición activado", "success");
+        }
+
+        window.confirmDeleteSingle = (id) => { document.getElementById('delete-id-input').value = id; document.getElementById('delete-single-modal').classList.remove('hidden'); }
+        window.hideDeleteSingleModal = () => document.getElementById('delete-single-modal').classList.add('hidden');
+        window.hideCameraErrorModal = () => document.getElementById('camera-error-modal').classList.add('hidden');
+        
+        window.showDebtModal = function(record) {
+            const modal = document.getElementById('debt-modal');
+            const total = Number(record.precio || 0), aCuenta = Number(record.pago || 0), saldo = aCuenta - total;
+            
+            document.getElementById('debt-modal-subtitle').innerHTML = `<span class="font-mono bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white px-1.5 py-0.5 rounded mr-1 text-xs">Cód: ${record.codigo}</span> ${record.nombre}`;
+            document.getElementById('debt-modal-total').textContent = `S/ ${total.toFixed(2)}`;
+            document.getElementById('debt-modal-acuenta').textContent = `S/ ${aCuenta.toFixed(2)}`;
+            
+            const iconContainer = document.getElementById('debt-modal-icon');
+            const statusLabel = document.getElementById('debt-modal-status-label');
+            const statusValue = document.getElementById('debt-modal-status-value');
+
+            if (saldo < 0) {
+                iconContainer.className = "flex items-center justify-center w-16 h-16 mx-auto rounded-full mb-4 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 shadow-inner";
+                iconContainer.innerHTML = `<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                statusLabel.textContent = "FALTA PAGAR:";
+                statusValue.textContent = `S/ ${Math.abs(saldo).toFixed(2)}`;
+                statusValue.className = "font-black text-2xl text-red-600 dark:text-red-400";
+            } else {
+                iconContainer.className = "flex items-center justify-center w-16 h-16 mx-auto rounded-full mb-4 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 shadow-inner";
+                iconContainer.innerHTML = `<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                statusLabel.textContent = saldo === 0 ? "PAGADO / LISTO:" : "DAR VUELTO:";
+                statusValue.textContent = saldo === 0 ? "✓ S/ 0.00" : `S/ ${Math.abs(saldo).toFixed(2)}`;
+                statusValue.className = "font-black text-2xl text-green-600 dark:text-green-400";
+            }
+            modal.classList.remove('hidden');
+        }
+        window.hideDebtModal = () => document.getElementById('debt-modal').classList.add('hidden');
+
+        window.executeSingleDelete = async function() {
+            const id = document.getElementById('delete-id-input').value;
+            if (!id || !auth.currentUser) return;
+            const btn = document.getElementById('btn-confirm-single-delete');
+            btn.disabled = true; btn.innerHTML = 'Eliminando...';
+            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'registros', id)); showToast("Registro eliminado"); hideDeleteSingleModal();
+            } catch (error) { showToast("Error al borrar", "error"); } finally { btn.disabled = false; btn.innerHTML = 'Eliminar'; }
+        }
+
         window.generateBarcodesPDF = async function() {
             try {
-                showToast("Generando PDF... (100 códigos)", "success");
-                
+                showToast("Generando PDF... (100 códigos QR)", "success");
                 const { jsPDF } = window.jspdf;
-                // A4 es 210x297 mm
                 const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-                const canvas = document.getElementById('barcode-canvas');
-                
-                // Configuración para 60 por hoja (6 columnas x 10 filas)
-                // Layout más compacto
-                const cols = 6;
-                const rows = 10;
-                
-                // Calcular espacios. A4 ancho = 210. 210 / 6 = 35mm por celda
-                // A4 alto = 297. 297 / 10 = 29.7mm por celda
-                const cellWidth = 33; 
-                const cellHeight = 28;
-                
-                const startX = 6; // Margen izquierdo
-                const startY = 10; // Margen superior
-                
-                // Tamaño del código en sí
-                const barcodeWidth = 28;
-                const barcodeHeight = 15;
+                const cols = 5, rows = 8, cellWidth = 38, cellHeight = 34.6, startX = 10, startY = 10, qrSize = 24;
 
                 for (let i = 1; i <= 100; i++) {
                     const code = String(i).padStart(3, '0');
+                    const qr = new QRious({ value: code, size: 256, level: 'M' });
+                    const imgData = qr.canvas.toDataURL("image/jpeg", 1.0);
+                    const itemOnPage = (i - 1) % 40;
+                    const col = itemOnPage % cols, row = Math.floor(itemOnPage / cols);
                     
-                    // Generar en canvas
-                    JsBarcode(canvas, code, {
-                        format: "CODE128",
-                        displayValue: true,
-                        fontSize: 35, // texto más grande en relación al código para que se lea
-                        textMargin: 4,
-                        margin: 0,
-                        width: 3, // barras más gruesas
-                        height: 50
-                    });
-
-                    const imgData = canvas.toDataURL("image/jpeg", 1.0);
-
-                    // Posicionamiento 60 por página
-                    const itemsPerPage = cols * rows; // 60
-                    const itemOnPage = (i - 1) % itemsPerPage;
-                    const col = itemOnPage % cols;
-                    const row = Math.floor(itemOnPage / cols);
-
                     if (i > 1 && itemOnPage === 0) doc.addPage();
-
-                    const x = startX + (col * cellWidth);
-                    const y = startY + (row * cellHeight);
-
-                    // Centrar dentro de su "celda"
-                    const offsetX = (cellWidth - barcodeWidth) / 2;
+                    const x = startX + (col * cellWidth), y = startY + (row * cellHeight);
+                    const offsetX = (cellWidth - qrSize) / 2;
                     
-                    // Dibujar código
-                    doc.addImage(imgData, 'JPEG', x + offsetX, y, barcodeWidth, barcodeHeight);
-                    
-                    // Cuadro recortable tenue
-                    doc.setDrawColor(220);
-                    doc.setLineWidth(0.1);
-                    doc.rect(x, y-2, cellWidth, cellHeight);
+                    doc.addImage(imgData, 'JPEG', x + offsetX, y + 2, qrSize, qrSize);
+                    doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 0, 0);
+                    const textWidth = doc.getTextWidth(code);
+                    doc.text(code, x + (cellWidth / 2) - (textWidth / 2), y + qrSize + 6);
+                    doc.setDrawColor(220); doc.setLineWidth(0.1); doc.rect(x, y, cellWidth, cellHeight);
                 }
-
-                doc.save("Codigos_Grafiplot_1_100.pdf");
-                showToast("PDF descargado.");
-
-            } catch (error) {
-                console.error(error);
-                showToast("Error al generar PDF", "error");
-            }
+                doc.save("Codigos_QR_Grafiplot_1_100.pdf"); showToast("PDF descargado.");
+            } catch (error) { showToast("Error al generar PDF", "error"); }
         }
 
         window.generateReceiptPDF = function(recordId) {
             const record = records.find(r => r.id === recordId);
             if (!record) return;
-
             try {
                 const { jsPDF } = window.jspdf;
-                // Usaremos un formato pequeño tipo ticket o A6, usaremos A6 (105x148 mm)
                 const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a6" });
                 
-                // Color corporativo (Rojo Grafiplot aprox #e31837)
-                doc.setFillColor(227, 24, 55); 
-                doc.rect(0, 0, 105, 18, 'F'); // Cabecera roja un poco más alta
+                doc.setFillColor(227, 24, 55); doc.rect(0, 0, 105, 18, 'F');
+                doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(255, 255, 255);
+                doc.text("GRAFIPLOT", 52.5, 13, { align: "center" });
 
-                // Logo en texto
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(22);
-                doc.setTextColor(255, 255, 255); // Texto blanco
-                doc.text("GRAFIPLOT", 52.5, 13, { align: "center" }); // Centrado
-
-                // Datos Empresa
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.setTextColor(50);
+                doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(50);
                 doc.text("CONTROL DE ARCHIVOS", 10, 26);
-                doc.setFontSize(9);
-                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9); doc.setFont("helvetica", "normal");
                 doc.text("Celular: 952 628 844", 10, 31);
 
-                // Separador
-                doc.setDrawColor(200);
-                doc.line(10, 34, 95, 34);
-
-                // Título Recibo
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(12);
-                doc.setTextColor(0);
+                doc.setDrawColor(200); doc.line(10, 34, 95, 34);
+                doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(0);
                 doc.text("TICKET DE REGISTRO", 10, 42);
 
-                // Datos Cliente/Registro
-                const startY = 50;
-                const lineHeight = 6.5;
-                doc.setFontSize(10);
+                const startY = 50, lineHeight = 6.5; doc.setFontSize(10);
                 
+                doc.setFont("helvetica", "bold"); doc.text("CÓDIGO:", 10, startY); doc.setFont("helvetica", "normal"); doc.text(record.codigo, 40, startY);
+                doc.setFont("helvetica", "bold"); doc.text("NOMBRE:", 10, startY + lineHeight); doc.setFont("helvetica", "normal"); doc.text(record.nombre.substring(0, 25), 40, startY + lineHeight);
+                doc.setFont("helvetica", "bold"); doc.text("CELULAR:", 10, startY + (lineHeight*2)); doc.setFont("helvetica", "normal"); doc.text(record.celular, 40, startY + (lineHeight*2));
+                doc.setFont("helvetica", "bold"); doc.text("UBICACIÓN:", 10, startY + (lineHeight*3)); doc.setFont("helvetica", "normal"); doc.text(record.ubicacion, 40, startY + (lineHeight*3));
+                doc.setFont("helvetica", "bold"); doc.text("DESCRIP.:", 10, startY + (lineHeight*4)); doc.setFontSize(8); doc.setFont("helvetica", "normal");
+                doc.text((record.descripcion || 'Ninguna').substring(0, 40), 40, startY + (lineHeight*4)); doc.setFontSize(10);
+
+                doc.setFillColor(245, 245, 245); doc.rect(10, startY + (lineHeight*5), 85, 22, 'F');
                 doc.setFont("helvetica", "bold");
-                doc.text("CÓDIGO:", 10, startY);
-                doc.setFont("helvetica", "normal");
-                doc.text(record.codigo, 40, startY);
-
-                doc.setFont("helvetica", "bold");
-                doc.text("NOMBRE:", 10, startY + lineHeight);
-                doc.setFont("helvetica", "normal");
-                doc.text(record.nombre.substring(0, 25), 40, startY + lineHeight);
-
-                doc.setFont("helvetica", "bold");
-                doc.text("CELULAR:", 10, startY + (lineHeight*2));
-                doc.setFont("helvetica", "normal");
-                doc.text(record.celular, 40, startY + (lineHeight*2));
-
-                doc.setFont("helvetica", "bold");
-                doc.text("UBICACIÓN:", 10, startY + (lineHeight*3));
-                doc.setFont("helvetica", "normal");
-                doc.text(record.ubicacion, 40, startY + (lineHeight*3));
-
-                doc.setFont("helvetica", "bold");
-                doc.text("DESCRIP.:", 10, startY + (lineHeight*4));
-                doc.setFontSize(8);
-                doc.setFont("helvetica", "normal");
-                // Cortar texto si es muy largo
-                const descStr = (record.descripcion || 'Ninguna').substring(0, 40);
-                doc.text(descStr, 40, startY + (lineHeight*4));
-                doc.setFontSize(10);
-
-                // Sección Económica (Caja Gris)
-                doc.setFillColor(245, 245, 245);
-                doc.rect(10, startY + (lineHeight*5), 85, 22, 'F');
-
-                doc.setFont("helvetica", "bold");
-                doc.text("PRECIO TOTAL:", 12, startY + (lineHeight*6));
-                doc.text("S/ " + Number(record.precio || 0).toFixed(2), 65, startY + (lineHeight*6));
-
-                doc.text("A CUENTA:", 12, startY + (lineHeight*7));
-                doc.text("S/ " + Number(record.pago || 0).toFixed(2), 65, startY + (lineHeight*7));
+                doc.text("PRECIO TOTAL:", 12, startY + (lineHeight*6)); doc.text("S/ " + Number(record.precio || 0).toFixed(2), 65, startY + (lineHeight*6));
+                doc.text("A CUENTA:", 12, startY + (lineHeight*7)); doc.text("S/ " + Number(record.pago || 0).toFixed(2), 65, startY + (lineHeight*7));
 
                 const cambioCalc = (record.pago || 0) - (record.precio || 0);
                 if (cambioCalc < 0) {
-                    doc.setTextColor(200, 0, 0); // Rojo para deuda
-                    doc.text("FALTA PAGAR:", 12, startY + (lineHeight*8));
-                    doc.text("S/ " + Math.abs(cambioCalc).toFixed(2), 65, startY + (lineHeight*8));
+                    doc.setTextColor(200, 0, 0); doc.text("FALTA PAGAR:", 12, startY + (lineHeight*8)); doc.text("S/ " + Math.abs(cambioCalc).toFixed(2), 65, startY + (lineHeight*8));
                 } else {
-                    doc.setTextColor(0, 100, 0); // Verde para cambio
-                    doc.text("CAMBIO:", 12, startY + (lineHeight*8));
-                    doc.text("S/ " + Math.abs(cambioCalc).toFixed(2), 65, startY + (lineHeight*8));
+                    doc.setTextColor(0, 100, 0); doc.text("CAMBIO:", 12, startY + (lineHeight*8)); doc.text("S/ " + Math.abs(cambioCalc).toFixed(2), 65, startY + (lineHeight*8));
                 }
-
-                // Reset color
+                
                 doc.setTextColor(100);
-                
-                // Fecha aproximada (desde memoria local, formato simple)
-                let dateStr = "";
-                if(record.createdAt) {
-                    const d = record.createdAt.toDate();
-                    dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-                } else {
-                     dateStr = new Date().toLocaleDateString();
-                }
-                
-                doc.setFontSize(8);
-                doc.text("Fecha: " + dateStr, 10, startY + (lineHeight*9.5));
+                let dateStr = new Date().toLocaleDateString();
+                if(record.createdAt) { const d = record.createdAt.toDate ? record.createdAt.toDate() : new Date(record.createdAt); dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
+                doc.setFontSize(8); doc.text("Fecha: " + dateStr, 10, startY + (lineHeight*9.5));
 
-                // Código de barras del ticket
-                const canvasBC = document.getElementById('barcode-canvas');
-                JsBarcode(canvasBC, record.codigo, { format: "CODE128", displayValue: false, margin: 0 });
-                doc.addImage(canvasBC.toDataURL("image/jpeg"), 'JPEG', 27, 115, 50, 15);
+                const qr = new QRious({ value: record.codigo, size: 150, level: 'M' });
+                doc.addImage(qr.canvas.toDataURL("image/jpeg", 1.0), 'JPEG', 40, 110, 25, 25);
                 
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.setTextColor(0);
-                doc.text(record.codigo, 47, 134);
+                doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(0);
+                const textWidth = doc.getTextWidth(record.codigo); doc.text(record.codigo, 52.5 - (textWidth / 2), 140);
+                doc.setDrawColor(227, 24, 55); doc.setLineWidth(0.5); doc.rect(5, 5, 95, 138);
 
-                // Borde exterior ticket
-                doc.setDrawColor(227, 24, 55);
-                doc.setLineWidth(0.5);
-                doc.rect(5, 5, 95, 138);
-
-                doc.save(`Recibo_Grafiplot_${record.codigo}.pdf`);
-                showToast("Recibo generado.");
-            } catch (err) {
-                console.error("Error generando recibo", err);
-                showToast("Error al crear el recibo.", "error");
-            }
+                doc.save(`Recibo_Grafiplot_${record.codigo}.pdf`); showToast("Recibo generado.");
+            } catch (err) { showToast("Error al crear el recibo.", "error"); }
         }
 
         window.exportToExcel = function() {
             try {
-                if (records.length === 0) {
-                    showToast("No hay datos para exportar", "error");
-                    return;
-                }
-
+                if (records.length === 0) { showToast("No hay datos para exportar", "error"); return; }
                 showToast("Generando Excel...", "success");
 
-                // Preparar datos con formato amigable para Excel
                 const dataParaExcel = records.map(r => {
-                    let fechaStr = "";
-                    if(r.createdAt) {
-                        const d = r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
-                        fechaStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-                    } else {
-                        fechaStr = "Desconocida";
-                    }
-
+                    let fechaStr = "Desconocida";
+                    if(r.createdAt) { const d = r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt); fechaStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
                     const saldo = (r.pago || 0) - (r.precio || 0);
-                    const estadoDeuda = saldo < 0 ? "DEBE" : "CANCELADO / VUELTO";
-
                     return {
-                        "Código": r.codigo,
-                        "Nombre Cliente": r.nombre,
-                        "Celular": r.celular,
-                        "Descripción del Trabajo": r.descripcion || "",
-                        "Cant. Hojas": r.hojas,
-                        "Ubicación": r.ubicacion,
-                        "Precio Total (S/)": Number(r.precio || 0).toFixed(2),
-                        "A Cuenta (S/)": Number(r.pago || 0).toFixed(2),
-                        "Saldo (S/)": Math.abs(saldo).toFixed(2),
-                        "Estado": estadoDeuda,
-                        "Fecha de Registro": fechaStr
+                        "Código": r.codigo, "Nombre Cliente": r.nombre, "Celular": r.celular, "Descripción del Trabajo": r.descripcion || "",
+                        "Cant. Hojas": r.hojas, "Ubicación": r.ubicacion, "Precio Total (S/)": Number(r.precio || 0).toFixed(2),
+                        "A Cuenta (S/)": Number(r.pago || 0).toFixed(2), "Saldo (S/)": Math.abs(saldo).toFixed(2),
+                        "Estado": saldo < 0 ? "DEBE" : "CANCELADO / VUELTO", "Fecha de Registro": fechaStr
                     };
                 });
-
-                // Crear libro de trabajo
-                const ws = XLSX.utils.json_to_sheet(dataParaExcel);
-                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(dataParaExcel), wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Registros");
-
-                // Ajustar ancho de columnas para que se vea bien al abrirlo
-                const wscols = [
-                    {wch: 10}, // Codigo
-                    {wch: 30}, // Nombre
-                    {wch: 15}, // Celular
-                    {wch: 50}, // Descripcion
-                    {wch: 12}, // Hojas
-                    {wch: 12}, // Ubicacion
-                    {wch: 18}, // Precio
-                    {wch: 15}, // A Cuenta
-                    {wch: 15}, // Saldo
-                    {wch: 22}, // Estado
-                    {wch: 20}  // Fecha
-                ];
-                ws['!cols'] = wscols;
-
-                // Generar y Descargar archivo
-                const fechaHoy = new Date().toISOString().split('T')[0];
-                XLSX.writeFile(wb, `Respaldo_Grafiplot_${fechaHoy}.xlsx`);
-                showToast("Excel descargado correctamente", "success");
-
-            } catch (error) {
-                console.error("Error al exportar a Excel:", error);
-                showToast("Error al generar Excel", "error");
-            }
+                ws['!cols'] = [{wch: 10}, {wch: 30}, {wch: 15}, {wch: 50}, {wch: 12}, {wch: 12}, {wch: 18}, {wch: 15}, {wch: 15}, {wch: 22}, {wch: 20}];
+                XLSX.writeFile(wb, `Respaldo_Grafiplot_${new Date().toISOString().split('T')[0]}.xlsx`); showToast("Excel descargado correctamente", "success");
+            } catch (error) { showToast("Error al generar Excel", "error"); }
         }
 
         window.showClearModal = () => document.getElementById('clear-modal').classList.remove('hidden');
         window.hideClearModal = () => document.getElementById('clear-modal').classList.add('hidden');
-        
         window.executeClearData = async function() {
             if (!auth.currentUser) return;
-            const btn = document.getElementById('btn-confirm-clear');
-            btn.disabled = true; btn.innerHTML = 'Borrando...';
-            try {
-                const deletePromises = records.map(r => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'registros', r.id)));
-                await Promise.all(deletePromises);
-                showToast("Sistema reiniciado.");
-                hideClearModal();
-                searchInput.value = '';
-            } catch (error) {
-                showToast("Error al borrar", "error");
-            } finally {
-                btn.disabled = false; btn.innerHTML = 'Borrar Todo';
-            }
+            const btn = document.getElementById('btn-confirm-clear'); btn.disabled = true; btn.innerHTML = 'Borrando...';
+            try { await Promise.all(records.map(r => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'registros', r.id)))); showToast("Sistema reiniciado."); hideClearModal(); searchInput.value = '';
+            } catch (error) { showToast("Error al borrar", "error"); } finally { btn.disabled = false; btn.innerHTML = 'Borrar Todo'; }
         }
 
-        // Iniciar app y eventos adicionales
         window.addEventListener('DOMContentLoaded', () => {
             initApp();
-            
-            // Asignar eventos de calculo de dinero
-            const inpPrecio = document.getElementById('reg-precio');
-            const inpPago = document.getElementById('reg-pago');
+            const inpPrecio = document.getElementById('reg-precio'), inpPago = document.getElementById('reg-pago');
             if(inpPrecio) inpPrecio.addEventListener('input', calcularCambio);
             if(inpPago) inpPago.addEventListener('input', calcularCambio);
         });
-
     </script>
 </body>
 </html>
