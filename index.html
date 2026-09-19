@@ -651,7 +651,7 @@
 
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!auth.currentUser) return;
+            if(!auth || !auth.currentUser) return;
 
             const codeSelect = document.getElementById('reg-codigo');
             if (!codeSelect.value) { showToast("No hay códigos libres", "error"); return; }
@@ -987,13 +987,14 @@
         window.showClearModal = () => document.getElementById('clear-modal').classList.remove('hidden');
         window.hideClearModal = () => document.getElementById('clear-modal').classList.add('hidden');
         window.executeClearData = async function() {
-            if (!auth.currentUser) return;
+            if (!auth || !auth.currentUser) return;
             const btn = document.getElementById('btn-confirm-clear'); btn.disabled = true; btn.innerHTML = 'Borrando...';
             try { await Promise.all(records.map(r => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'registros', r.id)))); showToast("Sistema reiniciado."); hideClearModal(); searchInput.value = '';
             } catch (error) { showToast("Error al borrar", "error"); } finally { btn.disabled = false; btn.innerHTML = 'Borrar Todo'; }
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            // Versión actualizada: validaciones de autenticación reforzadas.
             initApp();
             const inpPrecio = document.getElementById('reg-precio'), inpPago = document.getElementById('reg-pago');
             if(inpPrecio) inpPrecio.addEventListener('input', calcularCambio);
